@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Python
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+*.pyc
+*.pyo
+.Python
+*.egg-info/
+.eggs/
+
+# Build outputs
+frontend/build/
+
+# Uploads & generated
+backend/uploads/
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+
+# IDE & OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# YOLO model (auto-downloaded, ~6MB)
+backend/yolov8n.pt
+
+# Logs
+*.log
+npm-debug.log*

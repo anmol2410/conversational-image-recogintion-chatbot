@@ -1,0 +1,12 @@
+{
+  "name": "ai-visual-assistant",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "backend": "cd backend && venv\\Scripts\\python.exe -m uvicorn main:app --reload",
+    "frontend": "cd frontend && npm start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
