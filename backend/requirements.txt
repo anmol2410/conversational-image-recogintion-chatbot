@@ -8,4 +8,4 @@ openai
 transformers
 torch
 accelerate
-easyocr
+# easyocr  # Omitted: python-bidi fails to build on Render. Install locally for OCR: pip install easyocr
