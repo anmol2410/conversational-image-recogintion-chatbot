@@ -1,4 +1,3 @@
-import { useState } from "react";
 import ThemeToggle from "./ThemeToggle";
 
 export default function Sidebar({ onNewChat, onClearChat, isCollapsed, onToggleCollapse }) {

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import axios from "axios";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import Sidebar from "./components/Sidebar";
@@ -29,7 +29,6 @@ function AppContent() {
   const [safetyWarnings, setSafetyWarnings] = useState([]);
   const [showCamera, setShowCamera] = useState(false);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
-  const fileInputRef = useRef(null);
 
   const processImage = (file) => {
     if (!file || !file.type.startsWith("image/")) {
