@@ -1,8 +1,9 @@
 """
-Visual pipeline: YOLO detection + BLIP caption + OCR + relations → AI reasoning.
-Supports detection caching by image path for performance.
+Visual pipeline: YOLO detection + BLIP caption + OCR + relations -> AI reasoning.
+Supports detection caching and fast follow-up questions.
 """
 import hashlib
+import os
 import cv2
 from pathlib import Path
 from typing import List, Dict, Any, Optional
@@ -44,6 +45,18 @@ def _safety_warnings(objects: List[Dict]) -> List[str]:
     return [f"Caution: potentially dangerous item(s) detected: {', '.join(found)}."]
 
 
+def _should_use_fast_mode() -> bool:
+    """
+    Fast mode is useful on small/free instances (like Render free tier).
+    - Enable explicitly with FAST_MODE=true
+    - Auto-enable on Render unless FAST_MODE=false is set
+    """
+    fast_env = os.getenv("FAST_MODE")
+    if fast_env is not None:
+        return fast_env.strip().lower() in {"1", "true", "yes", "on"}
+    return os.getenv("RENDER") is not None
+
+
 def run_visual_pipeline(
     image_path: str,
     question: str,
@@ -78,7 +91,7 @@ def run_visual_pipeline(
         relationships = cached.get("relationships", [])
     else:
         objects = detect_objects(image_path)
-        caption = get_caption(image_path)
+        caption = "" if _should_use_fast_mode() else get_caption(image_path)
         ocr_raw = get_text_in_image(image_path)
         ocr_text = " ".join(t[0] for t in ocr_raw).strip() if ocr_raw else get_ocr_text_flat(image_path)
         img = cv2.imread(image_path)
@@ -118,4 +131,57 @@ def run_visual_pipeline(
         "safety_warnings": safety,
         "answer": answer,
         "session_id": session_id,
+    }
+
+
+def run_followup_question(
+    question: str,
+    session_id: str,
+    conversation_manager: Optional[Any] = None,
+) -> Dict[str, Any]:
+    """
+    Answer follow-up question from session context only (no image re-upload/re-detection).
+    """
+    import sys
+    backend = Path(__file__).resolve().parent.parent
+    if str(backend) not in sys.path:
+        sys.path.insert(0, str(backend))
+
+    from chatbot.ai_chatbot import generate_answer
+
+    conv = conversation_manager
+    if conv is None:
+        from services.conversation_manager import get_conversation_manager
+        conv = get_conversation_manager()
+
+    context = conv.get_context(session_id)
+    objects = context.get("objects", [])
+    caption = context.get("caption", "")
+    ocr_text = context.get("ocr_text", "")
+    relationships = context.get("relationships", [])
+    history = context.get("history", [])
+    safety = _safety_warnings(objects)
+
+    answer = generate_answer(
+        objects,
+        question,
+        caption=caption,
+        history=history,
+        ocr_text=ocr_text,
+        relationships=relationships,
+        safety_warnings=safety,
+    )
+    conv.append_turn(session_id, "user", question)
+    conv.append_turn(session_id, "bot", answer)
+
+    return {
+        "success": True,
+        "detected_objects": objects,
+        "caption": caption,
+        "ocr_text": ocr_text,
+        "relationships": relationships,
+        "safety_warnings": safety,
+        "answer": answer,
+        "session_id": session_id,
+        "from_cache": True,
     }

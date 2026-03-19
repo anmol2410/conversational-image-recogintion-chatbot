@@ -725,33 +725,102 @@
   .right-panel {
     border-left: none;
     border-top: 1px solid var(--border);
-    max-height: 320px;
+    max-height: 360px;
+  }
+
+  .right-panel-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .analysis-summary,
+  .download-report-btn {
+    grid-column: span 2;
   }
 }
 
 @media (max-width: 768px) {
+  .app-root {
+    flex-direction: column;
+    min-height: 100dvh;
+  }
+
   .sidebar {
-    position: fixed;
-    left: 0;
+    position: sticky;
     top: 0;
-    bottom: 0;
-    z-index: 50;
+    z-index: 60;
+    width: 100%;
+    min-width: 0;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
   }
 
   .sidebar.collapsed {
-    width: 56px;
-    min-width: 56px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .sidebar-header {
+    min-height: 56px;
+    padding: 10px 12px;
+  }
+
+  .sidebar-btn {
+    margin: 6px 10px;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .sidebar-footer {
+    padding: 10px 12px;
   }
 
   .main-header h1 {
-    font-size: 18px;
+    font-size: 17px;
   }
 
   .chat-window {
-    padding: 16px;
+    padding: 12px;
   }
 
   .message-body {
     max-width: 90%;
+  }
+
+  .chat-input-wrap {
+    padding: 10px 12px 12px;
+    position: sticky;
+    bottom: 0;
+    z-index: 40;
+  }
+
+  .input-actions {
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+
+  .input-action-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .chat-input {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+
+  .right-panel {
+    max-height: none;
+  }
+
+  .right-panel-inner {
+    grid-template-columns: 1fr;
+    padding: 12px;
+  }
+
+  .analysis-summary,
+  .download-report-btn {
+    grid-column: auto;
   }
 }

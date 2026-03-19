@@ -29,6 +29,7 @@ function AppContent() {
   const [safetyWarnings, setSafetyWarnings] = useState([]);
   const [showCamera, setShowCamera] = useState(false);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
+  const [imageAnalyzed, setImageAnalyzed] = useState(false);
 
   const processImage = (file) => {
     if (!file || !file.type.startsWith("image/")) {
@@ -44,6 +45,7 @@ function AppContent() {
     setOcrText("");
     setRelationships([]);
     setSafetyWarnings([]);
+    setImageAnalyzed(false);
     setMessages((prev) => [...prev, { type: "info", text: `Image: ${file.name}`, timestamp: new Date() }]);
     const img = new Image();
     img.onload = () => setImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
@@ -72,6 +74,7 @@ function AppContent() {
     setOcrText("");
     setRelationships([]);
     setSafetyWarnings([]);
+    setImageAnalyzed(false);
     setError("");
   };
 
@@ -86,20 +89,27 @@ function AppContent() {
   };
 
   const handleSubmitQuestion = (questionToSend) => {
-    if (!image || !questionToSend.trim()) return;
+    if (!questionToSend.trim()) return;
+    if (!image && !sessionId) return;
 
     setMessages((prev) => [...prev, { type: "user", text: questionToSend, timestamp: new Date() }]);
     setQuestion("");
     setLoading(true);
     setError("");
 
+    const shouldUseFollowup = Boolean(sessionId && imageAnalyzed);
+    const endpoint = shouldUseFollowup ? `${API_URL}/ask/` : `${API_URL}/analyze/`;
     const formData = new FormData();
-    formData.append("file", image);
     formData.append("question", questionToSend);
-    if (sessionId) formData.append("session_id", sessionId);
+    if (shouldUseFollowup) {
+      formData.append("session_id", sessionId);
+    } else {
+      formData.append("file", image);
+      if (sessionId) formData.append("session_id", sessionId);
+    }
 
     axios
-      .post(`${API_URL}/analyze/`, formData)
+      .post(endpoint, formData)
       .then((response) => {
         if (response.data.session_id) setSessionId(response.data.session_id);
         if (response.data.detected_objects) setDetectedObjects(response.data.detected_objects);
@@ -107,6 +117,7 @@ function AppContent() {
         if (response.data.ocr_text !== undefined) setOcrText(response.data.ocr_text);
         if (Array.isArray(response.data.relationships)) setRelationships(response.data.relationships);
         if (Array.isArray(response.data.safety_warnings)) setSafetyWarnings(response.data.safety_warnings);
+        if (!shouldUseFollowup) setImageAnalyzed(true);
         setMessages((prev) => [
           ...prev,
           { type: "bot", text: response.data.answer || "No answer.", timestamp: new Date() },
@@ -118,7 +129,7 @@ function AppContent() {
           err.message === "Network Error" ||
           (err.response === undefined && err.request !== undefined);
         const msg = isNetworkError
-          ? "Backend not running. Start it with: uvicorn main:app --reload"
+          ? "Backend not reachable. Please wait for Render cold start and try again."
           : err.response?.data?.detail || err.message || "Request failed";
         setError(isNetworkError ? "Backend not reachable" : "Error analyzing image.");
         setMessages((prev) => [...prev, { type: "error", text: String(msg), timestamp: new Date() }]);

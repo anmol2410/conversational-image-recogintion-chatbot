@@ -13,7 +13,7 @@ if str(_BACKEND) not in sys.path:
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 
-from services.visual_reasoning import run_visual_pipeline
+from services.visual_reasoning import run_visual_pipeline, run_followup_question
 from services.conversation_manager import get_conversation_manager
 
 app = FastAPI(
@@ -71,6 +71,36 @@ async def analyze_image(
         }
 
 
+@app.post("/ask/")
+async def ask_followup(
+    question: str = Form(...),
+    session_id: str = Form(...),
+):
+    """
+    Fast follow-up endpoint: answer from existing session context only.
+    No image upload required.
+    """
+    try:
+        result = await run_followup_async(
+            question.strip(),
+            session_id=session_id,
+            conversation_manager=_conversation_manager,
+        )
+        return result
+    except Exception as e:
+        print(f"Ask follow-up error: {e}")
+        return {
+            "success": False,
+            "detected_objects": [],
+            "caption": "",
+            "ocr_text": "",
+            "relationships": [],
+            "safety_warnings": [],
+            "answer": "Sorry, I couldn't answer from session context. Please re-upload the image once.",
+            "session_id": session_id,
+        }
+
+
 async def save_upload_image_async(file: UploadFile) -> str:
     """Save uploaded file (async read, then write on disk)."""
     import asyncio
@@ -104,5 +134,20 @@ async def run_visual_pipeline_async(
         question,
         session_id=session_id,
         use_cache=True,
+        conversation_manager=conversation_manager,
+    )
+
+
+async def run_followup_async(
+    question: str,
+    session_id: str,
+    conversation_manager=None,
+):
+    """Run follow-up reasoning in thread pool."""
+    import asyncio
+    return await asyncio.to_thread(
+        run_followup_question,
+        question,
+        session_id,
         conversation_manager=conversation_manager,
     )
